@@ -1,0 +1,16 @@
+digraph {
+	output [label=output]
+	button [label=button]
+	button -> broadcaster
+	broadcaster [label=broadcaster]
+	broadcaster -> "%a"
+	"%a" [label="%a"]
+	"%a" -> "&inv"
+	"%a" -> "&con"
+	"&inv" [label="&inv"]
+	"&inv" -> "%b"
+	"%b" [label="%b"]
+	"%b" -> "&con"
+	"&con" [label="&con"]
+	"&con" -> output
+}
