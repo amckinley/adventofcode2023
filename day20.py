@@ -1,5 +1,6 @@
 from enum import Flag, auto
 import graphviz
+from collections import deque
 
 class Signal(Flag):
     LOW = False
@@ -9,36 +10,17 @@ class Module(object):
     def __init__(self, id: str):
         self.children = []
         self.id = id
-        self.low_sent = 0
-        self.high_sent = 0
-    
-    def rx(self, signals: list[Signal]):
-        # print("in an rx")
-        output = self._handle(signals)
-        # this module is not emitting a pulse
-        if output == None:
-            # print("no output, returning {}".format(self.id))
-            return
 
-        for c in self.children:
-            if output == Signal.LOW:
-                self.low_sent += 1
-            elif output == Signal.HIGH:
-                self.high_sent += 1
-            else:
-                raise Exception("bogus output {}".format(output))
-
-            # print("{} -{}-> {}".format(self.to_spec(), output, c.to_spec()))
-            # recursive call here will ensure that messages are fully processed by downstream
-            # modules first
-            c.rx([output])
-
-    # turns the signals array into an output decision
-    def _handle(self, signals: list[Signal]) -> Signal:
+    # turns the input signal and sender into an output decision
+    def _handle(self, signal: Signal, sender) -> Signal:
         raise NotImplemented()
     
     def attach_child(self, mod):
         self.children.append(mod)
+
+        # we need to tell Conj modules about all their inbound modules
+        if type(mod) is Conj:
+            mod.add_inbound(self)
 
 
 class FlipFlop(Module):
@@ -46,9 +28,8 @@ class FlipFlop(Module):
         super(FlipFlop, self).__init__(id)
         self.state = Signal.LOW
     
-    def _handle(self, signals: list[Signal]) -> Signal:
-        s = signals[0]
-        if s == Signal.HIGH:
+    def _handle(self, signal: Signal, sender) -> Signal:
+        if signal == Signal.HIGH:
             return None
         else:
             self.state =  ~ self.state
@@ -56,27 +37,27 @@ class FlipFlop(Module):
         
     def to_spec(self) -> str:
         return "%{}".format(self.id)
-
-    # def flipflop(state, r, s):
-    #     return False if r else (True if s else state)
     
 class Conj(Module):
     def __init__(self, id: str):
         super(Conj, self).__init__(id)
-        self.states = []
+        self.states = {}
 
-    def _handle(self, signals: list[Signal]) -> Signal:
-        for idx, s in enumerate(signals):
-            self.states[idx] = s
-
-        if all(self.states):
+    def _handle(self, signal: Signal, sender) -> Signal:
+        # if we havent seen this sender before, set its state to LOW
+        if sender.to_spec() not in self.states:
+            print(self.states, sender.to_spec())
+            raise Exception()
+        # XXX: this might be a bug? maybe we need to initialize this list first?
+        self.states[sender.to_spec()] = signal
+    
+        if all(self.states.values()):
             return Signal.LOW
         else:
             return Signal.HIGH
-
-    def attach_child(self, mod):
-        super().attach_child(mod)
-        self.states.append(Signal.LOW)
+    
+    def add_inbound(self, mod):
+        self.states[mod.to_spec()] = Signal.LOW
 
     def to_spec(self) -> str:
         return "&{}".format(self.id)
@@ -86,8 +67,8 @@ class Broadcaster(Module):
         super(Broadcaster, self).__init__('broadcaster')
 
     # we only ever get one signal, from the button module
-    def _handle(self, signals: list[Signal]) -> Signal:
-        return signals[0]
+    def _handle(self, signal: Signal, sender) -> Signal:
+        return Signal.LOW
     
     def to_spec(self) -> str:
         return 'broadcaster'
@@ -96,7 +77,8 @@ class Button(Module):
     def __init__(self):
         super(Button, self).__init__('button')
 
-    def _handle(self, signals: list[Signal]) -> Signal:
+    # we always send a LOW to the broadcaster
+    def _handle(self, signal: Signal, sender) -> Signal:
         return Signal.LOW
     
     def to_spec(self) -> str:
@@ -104,15 +86,12 @@ class Button(Module):
     
     def push(self):
         self.rx([])
-
-    def _handle(self, signals: list[Signal]) -> Signal:
-        return Signal.LOW
     
 class Output(Module):
     def __init__(self):
         super(Output, self).__init__('output')
 
-    def _handle(self, signals: list[Signal]) -> Signal:
+    def _handle(self, signal: Signal, sender) -> Signal:
         return None
     
     def to_spec(self) -> str:
@@ -120,6 +99,9 @@ class Output(Module):
 
 class Machine(object):
     def __init__(self, lines):
+        self.low_sent = 0
+        self.high_sent = 0
+
         # first make all the objects
         spec_to_mod = {}
         id_to_mod = {}
@@ -138,6 +120,7 @@ class Machine(object):
             name, _ = l.split(" -> ")
             if name == 'broadcaster':
                 m = Broadcaster()
+                self.broadcaster = m
             elif name.startswith('%'):
                 name = name[1:]
                 m = FlipFlop(name)
@@ -165,8 +148,35 @@ class Machine(object):
 
     def start(self, presses=1):
         for i in range(presses):
-            self.button.push()
+            # fake this out since we enqueue the first signal by hand
+            # self.low_sent += 1
+            self._run()
 
+    def _run(self):
+        to_send = deque()
+        to_send.append((Signal.LOW, self.button, self.broadcaster))
+
+        while len(to_send):
+            signal, src, dst = to_send.popleft()
+            output = dst._handle(signal, src)
+            if signal == Signal.LOW:
+                self.low_sent += 1
+            elif signal == Signal.HIGH:
+                self.high_sent += 1
+            print("{} -{}-> {}\tq_len={}".format(src.id, signal, dst.id, len(to_send)))
+            # self.print_q(to_send.copy())
+            
+            if output == None:
+                continue
+            
+            for c in dst.children:
+                to_send.append((output, dst, c))
+
+    def print_q(self, q):
+        for s, src, dst in q:
+            print("\t{} -{}-> {}".format(src.to_spec(), s, dst.to_spec()))
+
+        print()
 
     def png_out(self, filename='machine'):
         dot = graphviz.Digraph(format='png')
@@ -177,12 +187,7 @@ class Machine(object):
         dot.render(filename)
 
     def get_counts(self):
-        lows = 0
-        highs = 0
-        for m in self.id_to_mod.values():
-            lows += m.low_sent
-            highs += m.high_sent
-        print("low {} high {}".format(lows, highs))
+        print("low {} high {}".format(self.low_sent, self.high_sent))
 
 if __name__ == "__main__":
     # f = FlipFlop("foo")
