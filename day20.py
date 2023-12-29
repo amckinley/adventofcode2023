@@ -1,6 +1,8 @@
 from enum import Flag, auto
 import graphviz
 from collections import deque
+import itertools
+import sys
 
 class Signal(Flag):
     LOW = False
@@ -44,24 +46,28 @@ class Conj(Module):
         self.states = {}
 
     def _handle(self, signal: Signal, sender) -> Signal:
-        # if we havent seen this sender before, set its state to LOW
-        if sender.to_spec() not in self.states:
-            print(self.states, sender.to_spec())
-            raise Exception()
-        # XXX: this might be a bug? maybe we need to initialize this list first?
         self.states[sender.to_spec()] = signal
-    
-        if all(self.states.values()):
-            return Signal.LOW
-        else:
-            return Signal.HIGH
+        return self.peek_state()
     
     def add_inbound(self, mod):
         self.states[mod.to_spec()] = Signal.LOW
 
     def to_spec(self) -> str:
         return "&{}".format(self.id)
-
+    
+    # zq: 3779
+    # qm: 3889
+    # jh: 3907
+    # dc: 4051
+    def peek_state(self):
+        if all(self.states.values()):
+            if self.id in ['dc']:
+                print(self.id)
+                sys.exit()
+            return Signal.LOW
+        else:
+            return Signal.HIGH
+        
 class Broadcaster(Module):
     def __init__(self):
         super(Broadcaster, self).__init__('broadcaster')
@@ -96,6 +102,21 @@ class Output(Module):
     
     def to_spec(self) -> str:
         return 'output'
+    
+class Rx(Module):
+    def __init__(self):
+        super(Rx, self).__init__('rx')
+        self.triggered = False
+
+    def _handle(self, signal: Signal, sender) -> Signal:
+        if signal == Signal.LOW:
+            print("holy shit its rx")
+            self.triggered = True
+
+        return None
+    
+    def to_spec(self) -> str:
+        return 'rx'
 
 class Machine(object):
     def __init__(self, lines):
@@ -115,6 +136,11 @@ class Machine(object):
         self.button = b
         spec_to_mod[b.to_spec()] = b
         id_to_mod[b.to_spec()] = b
+
+        rx = Rx()
+        self.rx = rx
+        spec_to_mod[rx.to_spec()] = rx
+        id_to_mod[rx.to_spec()] = rx
         
         for l in lines:
             name, _ = l.split(" -> ")
@@ -137,20 +163,33 @@ class Machine(object):
             s_id, d_ids = l.split(" -> ")
             src = spec_to_mod[s_id]
             for d_id in d_ids.split(", "):
+                # if we've never seen this node, just use the output node.
+                # we cant just skip because we have to keep track of counts
                 dst = id_to_mod[d_id.strip()]
                 src.attach_child(dst)
 
-        # attach the button
+        # attach the button manually because its not part of the edge list
         self.button.attach_child(id_to_mod['broadcaster'])
+
+        # # these are the conj modules that aggregate each of the 4 binary counters
+        # agg_ids = ['jh', 'dc', 'qm', 'zq']
+        # self.agg_mods = [id_to_mod[id] for id in agg_ids]
 
         self.spec_to_mod = spec_to_mod
         self.id_to_mod = id_to_mod
 
     def start(self, presses=1):
-        for i in range(presses):
-            # fake this out since we enqueue the first signal by hand
-            # self.low_sent += 1
+        if presses == -1:
+            iter = itertools.count(start=1)
+            print("WARNING: running forever!")
+        else:
+            iter = range(1, presses)
+        for i in iter:
+            print(i)
             self._run()
+            # for m in self.agg_mods:
+            #     if m.peek_state() == Signal.LOW:
+            #         print("found a period: node {} has period {}".format(m.id, i))
 
     def _run(self):
         to_send = deque()
@@ -163,7 +202,7 @@ class Machine(object):
                 self.low_sent += 1
             elif signal == Signal.HIGH:
                 self.high_sent += 1
-            print("{} -{}-> {}\tq_len={}".format(src.id, signal, dst.id, len(to_send)))
+            # print("{} -{}-> {}\tq_len={}".format(src.id, signal, dst.id, len(to_send)))
             # self.print_q(to_send.copy())
             
             if output == None:
@@ -188,22 +227,12 @@ class Machine(object):
 
     def get_counts(self):
         print("low {} high {}".format(self.low_sent, self.high_sent))
+        print("total={}".format(self.low_sent * self.high_sent))
 
 if __name__ == "__main__":
-    # f = FlipFlop("foo")
-    # f.rx([Signal.LOW])
-    # print(f.low_sent, f.high_sent)
-    
-    # s1 = Signal.HIGH
-    # print(~ s1)
-    # ss = [Signal.HIGH, Signal.HIGH, Signal.HIGH]
-    # print(all(ss))
-    # ss.append(Signal.LOW)
-    # print(all(ss))
-
-    f = open("input_day20_ex2.txt", 'r')
+    f = open("input_day20.txt", 'r')
     m = Machine(f.readlines())
-    m.start(presses=1000)
+    m.start(presses=-1)
     m.get_counts()
     m.png_out()
 

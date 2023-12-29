@@ -2,15 +2,172 @@ digraph {
 	output [label=output]
 	button [label=button]
 	button -> broadcaster
+	rx [label=rx]
+	"&zq" [label="&zq"]
+	"&zq" -> "%fd"
+	"&zq" -> "%gk"
+	"&zq" -> "%pp"
+	"&zq" -> "&ph"
+	"&zq" -> "%ss"
+	"&zq" -> "%dr"
+	"&zq" -> "%pl"
+	"%qg" [label="%qg"]
+	"%qg" -> "&jh"
+	"%qg" -> "%nk"
+	"%lm" [label="%lm"]
+	"%lm" -> "%lg"
+	"%lm" -> "&qm"
+	"%fk" [label="%fk"]
+	"%fk" -> "%lr"
+	"%pp" [label="%pp"]
+	"%pp" -> "%hh"
+	"%bf" [label="%bf"]
+	"%bf" -> "%sj"
+	"%bf" -> "&qm"
+	"&qm" [label="&qm"]
+	"&qm" -> "%kb"
+	"&qm" -> "%jl"
+	"&qm" -> "%bs"
+	"&qm" -> "%kx"
+	"&qm" -> "%bl"
+	"&qm" -> "%cz"
+	"&qm" -> "&dd"
+	"%db" [label="%db"]
+	"%db" -> "&dc"
+	"%db" -> "%jn"
+	"%kl" [label="%kl"]
+	"%kl" -> "&dc"
+	"%kl" -> "%qv"
+	"%xm" [label="%xm"]
+	"%xm" -> "&jh"
+	"%ss" [label="%ss"]
+	"%ss" -> "&zq"
+	"%ss" -> "%nd"
+	"%vq" [label="%vq"]
+	"%vq" -> "%bh"
+	"%vq" -> "&dc"
+	"%bl" [label="%bl"]
+	"%bl" -> "%bs"
+	"%fd" [label="%fd"]
+	"%fd" -> "%gk"
+	"&dc" [label="&dc"]
+	"&dc" -> "&tx"
+	"&dc" -> "%vq"
+	"&dc" -> "%ct"
+	"&dc" -> "%df"
+	"&dc" -> "%fx"
+	"%dj" [label="%dj"]
+	"%dj" -> "&zq"
+	"%dj" -> "%pp"
+	"%fv" [label="%fv"]
+	"%fv" -> "%vj"
+	"%fv" -> "&zq"
+	"%pv" [label="%pv"]
+	"%pv" -> "%lm"
+	"%pv" -> "&qm"
+	"%dg" [label="%dg"]
+	"%dg" -> "%zz"
+	"%dg" -> "&jh"
+	"%fc" [label="%fc"]
+	"%fc" -> "%fk"
+	"%qv" [label="%qv"]
+	"%qv" -> "&dc"
+	"%qv" -> "%db"
+	"&ls" [label="&ls"]
+	"&ls" -> rx
+	"&tx" [label="&tx"]
+	"&tx" -> "&ls"
+	"%vl" [label="%vl"]
+	"%vl" -> "%fc"
+	"%dr" [label="%dr"]
+	"%dr" -> "%fd"
+	"&dd" [label="&dd"]
+	"&dd" -> "&ls"
+	"%kx" [label="%kx"]
+	"%kx" -> "%jl"
+	"%sj" [label="%sj"]
+	"%sj" -> "&qm"
+	"%sj" -> "%bl"
+	"%vj" [label="%vj"]
+	"%vj" -> "&zq"
+	"%nk" [label="%nk"]
+	"%nk" -> "&jh"
+	"%nk" -> "%vl"
+	"%xr" [label="%xr"]
+	"%xr" -> "%kr"
+	"%xr" -> "&jh"
+	"&nz" [label="&nz"]
+	"&nz" -> "&ls"
+	"%cz" [label="%cz"]
+	"%cz" -> "%bf"
+	"%ms" [label="%ms"]
+	"%ms" -> "&qm"
+	"%ct" [label="%ct"]
+	"%ct" -> "%fx"
+	"%lg" [label="%lg"]
+	"%lg" -> "&qm"
+	"%lg" -> "%ms"
+	"%lr" [label="%lr"]
+	"%lr" -> "%dg"
+	"%pl" [label="%pl"]
+	"%pl" -> "%dr"
+	"%rt" [label="%rt"]
+	"%rt" -> "&zq"
+	"%rt" -> "%dj"
+	"%jn" [label="%jn"]
+	"%jn" -> "&dc"
+	"%zz" [label="%zz"]
+	"%zz" -> "%zm"
+	"%kf" [label="%kf"]
+	"%kf" -> "%kl"
+	"%kf" -> "&dc"
+	"%jl" [label="%jl"]
+	"%jl" -> "%cz"
+	"%hh" [label="%hh"]
+	"%hh" -> "%fv"
+	"%hh" -> "&zq"
+	"%df" [label="%df"]
+	"%df" -> "%mr"
+	"&jh" [label="&jh"]
+	"&jh" -> "%zz"
+	"&jh" -> "%lr"
+	"&jh" -> "%vl"
+	"&jh" -> "%fc"
+	"&jh" -> "&nz"
+	"&jh" -> "%fk"
+	"&jh" -> "%qg"
+	"%fx" [label="%fx"]
+	"%fx" -> "%hq"
+	"%hq" [label="%hq"]
+	"%hq" -> "%df"
+	"%hq" -> "&dc"
+	"%kb" [label="%kb"]
+	"%kb" -> "&qm"
+	"%kb" -> "%kx"
+	"&ph" [label="&ph"]
+	"&ph" -> "&ls"
 	broadcaster [label=broadcaster]
-	broadcaster -> "%a"
-	"%a" [label="%a"]
-	"%a" -> "&inv"
-	"%a" -> "&con"
-	"&inv" [label="&inv"]
-	"&inv" -> "%b"
-	"%b" [label="%b"]
-	"%b" -> "&con"
-	"&con" [label="&con"]
-	"&con" -> output
+	broadcaster -> "%kb"
+	broadcaster -> "%vq"
+	broadcaster -> "%ss"
+	broadcaster -> "%qg"
+	"%nd" [label="%nd"]
+	"%nd" -> "%pl"
+	"%nd" -> "&zq"
+	"%gk" [label="%gk"]
+	"%gk" -> "%rt"
+	"%mr" [label="%mr"]
+	"%mr" -> "&dc"
+	"%mr" -> "%kf"
+	"%bs" [label="%bs"]
+	"%bs" -> "%pv"
+	"%bh" [label="%bh"]
+	"%bh" -> "&dc"
+	"%bh" -> "%ct"
+	"%kr" [label="%kr"]
+	"%kr" -> "&jh"
+	"%kr" -> "%xm"
+	"%zm" [label="%zm"]
+	"%zm" -> "%xr"
+	"%zm" -> "&jh"
 }
