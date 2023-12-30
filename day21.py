@@ -9,6 +9,7 @@ class Tile(Enum):
 
 class Garden(object):
     def __init__(self, lines):
+        self.rocks = set()
         tiles = []
         for r_idx, l in enumerate(lines):
             l = l.strip()
@@ -53,14 +54,15 @@ class Garden(object):
         while steps:
             next = set()
             for addr in cur:
+                r, c = addr
                 next.update(self.valid_steps_from(addr))
             cur = next
             steps -= 1
             # print("after {} steps".format(target_steps - steps))
-            print(self.highlight(cur))
+            # print(self.highlight(cur))
             os.system("cls")
 
-        print("total reachable = {}".format(len(cur)))
+        print("total reachable = {}, total rocks = {}".format(len(cur), len(self.rocks)))
 
     '''
     Try to compute the dimensions of our diamond shape
@@ -71,7 +73,12 @@ class Garden(object):
         num_cols = len(self.tiles[0])
         num_rows = len(self.tiles)
         #          left edge         right edge                top edge            # bottom edge
-        points = [(midpoint_row, 0), (midpoint_row, num_cols-1), (0, midpoint_col), (num_rows-1, midpoint_col)]
+        # points = [(midpoint_row, 0), (midpoint_row, num_cols-1), (0, midpoint_col), (num_rows-1, midpoint_col)]
+        points = [
+            (0, midpoint_col),           # top
+            (midpoint_row, num_cols-1),  # right
+            (num_rows-1, midpoint_col),  # bottom
+            (midpoint_row, 0)]           # left
 
         sum = 0
         for (a_r, a_c), (b_r, b_c) in itertools.pairwise(points):
@@ -100,6 +107,10 @@ class Garden(object):
     '''
     def is_valid(self, addr):
         r, c = addr
+
+        # this is very ugly
+        if self.tiles[r][c] == Tile.ROCK:
+            self.rocks.add((r,c))
         return r >= 0 and r < len(self.tiles) and \
             c >= 0 and c < len(self.tiles[0]) and \
             self.tiles[r][c] != Tile.ROCK
@@ -110,3 +121,6 @@ if __name__ == "__main__":
     g.find_shape_area()
     # print(str(g))
     # g.start_walk(64)
+
+    # total reachable = 3737, total rocks = 944
+    # area is 10498.0
