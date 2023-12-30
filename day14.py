@@ -2,6 +2,7 @@ from enum import Enum, auto
 from collections import defaultdict, deque
 from colorama import just_fix_windows_console, Fore, Back, Style
 import sys
+import itertools
 
 class Tile(Enum):
     ROUND = 'O'
@@ -16,14 +17,25 @@ class Platform(object):
             new_row = [Tile(c) for c in l]
             tiles.append(new_row)
         self.tiles = tiles
-        self.colorize = set()
+
+    # def __eq__(self, other):
+    #     return self.tiles == other.tiles
+    
+    # def __hash__(self, other):
+    #     return hash(str(self)) == hash(str(other))
 
     def __str__(self):
+        return self.__internal_str__(set())
+    
+    def str_colorized(self, colorized):
+        return self.__internal_str__(colorized)
+    
+    def __internal_str__(self, colorize):
         buf = ''
         for r_id, row in enumerate(self.tiles):
             row_buf = ''
             for c_id, c in enumerate(row):
-                if (r_id, c_id) in self.colorize:
+                if (r_id, c_id) in colorize:
                     row_buf += Fore.RED + c.value + Style.RESET_ALL
                 else:
                     row_buf += c.value
@@ -31,38 +43,60 @@ class Platform(object):
 
         return buf[:-1]
     
-    # this is a stupid hack. takes set((row, col)) addresses to highlight
-    # on the next invocation of str()
-    def mark_for_colorize(self, colorize):
-        self.colorize = colorize
-    
     def iter_cols(self):
         for col_id in range(len(self.tiles[0])):
             buf = []
-            for row in self.tiles:
-                buf.append(row[col_id])
+            for row_id, row in enumerate(self.tiles):
+                buf.append((row[col_id], (row_id, col_id)))
             yield buf
 
-    def roll_north(self):
-        for c_id, col in enumerate(self.iter_cols()):
-            # print("working on {}".format(c_id))
-            # track all the available open spots. when we find a square rock, pop everything out
-            open_spots = deque()
+    def iter_rows(self):
+        for row_id, row in enumerate(self.tiles):
+            yield [(tile, (row_id, col_id)) for col_id, tile in enumerate(row)]
 
-            # now loop across the rows in the col
-            for r_id, cell in enumerate(col):
-                match cell:
-                    case Tile.SQUARE:
-                        open_spots.clear()
-                    case Tile.SPACE:
-                        open_spots.append(r_id)
-                    case Tile.ROUND:
-                        if len(open_spots):
-                            r_dst = open_spots.popleft()
-                            self.swap_within_col(c_id, r_id, r_dst)
-                            # we just opened up this tile, and by definition it must go at the end of the list
-                            open_spots.append(r_id)
-                            
+    def roll_north(self):
+        for col in self.iter_cols():
+            self.roll_slice(col)
+
+    def roll_south(self):
+        for col in self.iter_cols():
+            self.roll_slice(reversed(col))
+
+    def roll_east(self):
+        for row in self.iter_rows():
+            self.roll_slice(reversed(row))
+
+    def roll_west(self):
+        for row in self.iter_rows():
+            self.roll_slice(row)
+
+    def spin(self):
+        self.roll_north()
+        self.roll_west()
+        self.roll_south()
+        self.roll_east()
+
+    '''
+    this is how we roll the platform in arbitrary directions, one row or col at a time.
+    it takes a list where each item is a (tile, (row_id, col_id)).
+    its the caller's job to put the list in order so we can traverse left to right,
+    where the left side is "down"
+    '''
+    def roll_slice(self, slice):
+        open_spots = deque()
+        for tile, addr in slice:
+            match tile:
+                case Tile.SQUARE:
+                    open_spots.clear()
+                case Tile.SPACE:
+                    open_spots.append(addr)
+                case Tile.ROUND:
+                    if len(open_spots):
+                        dst_addr = open_spots.popleft()
+                        self.swap(addr, dst_addr)
+                        # we just opened up this tile, and by definition it must go at the end of the list
+                        open_spots.append(addr)
+
     def calculate_load(self):
         acc = 0
         factor = len(self.tiles)
@@ -80,12 +114,6 @@ class Platform(object):
         self.tiles[a_row][a_col] = self.tiles[b_row][b_col]
         self.tiles[b_row][b_col] = temp
 
-
-    def swap_within_col(self, col, a_row, b_row):
-        a_addr = a_row, col
-        b_addr = b_row, col
-        self.swap(a_addr, b_addr)
-
     # takes the correct platform and prints out a colorized delta
     def print_delta_from_answer(self, other):
         wrong = set()
@@ -94,10 +122,7 @@ class Platform(object):
                 if self.tiles[r_id][c_id] != other.tiles[r_id][c_id]:
                     wrong.add((r_id, c_id))
 
-        self.mark_for_colorize(wrong)
-        print(self)
-
-
+        print(self.str_colorized(wrong))
 
 if __name__ == "__main__":
     # get colorama working
@@ -105,13 +130,24 @@ if __name__ == "__main__":
 
     f = open('input_day14.txt', 'r')
     p = Platform(f.readlines())
-    # print(p)
-    # print()
-    p.roll_north()
-    # cols = list(p.iter_cols())
-    # print(''.join([c.value for c in cols[0]]))
 
-    # f_ans = open('input_day14_ex_ans.txt', 'r')
-    # ans = Platform(f_ans.readlines())
-    # p.print_delta_from_answer(ans)
-    print(p.calculate_load())
+    spins_to_cnt_map = {}
+    cnt_to_spins_map = {}
+    offset = -1
+    period = -1
+    for cnt in itertools.count(start=1):
+        p.spin()
+        cur_val = str(p)
+        if cur_val in spins_to_cnt_map:
+            offset = spins_to_cnt_map[cur_val]
+            period = cnt - offset
+            break
+        spins_to_cnt_map[cur_val] = cnt
+        cnt_to_spins_map[cnt] = cur_val
+
+    target = 1000000000 - offset
+    target = target % period
+    target_platform_str = cnt_to_spins_map[offset + target]
+
+    p_target = Platform(target_platform_str.split("\n"))
+    print(p_target.calculate_load())
